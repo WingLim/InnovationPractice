@@ -108,7 +108,10 @@ class RouteSpider:
         href = self.ibuscloud + path + quote(name)
         r = requests.get(href)
         result = json.loads(r.text)
-        return self._parse_stop(result, name)
+        if result['total'] != 0:
+            return self._parse_stop(result, name)
+        else:
+            return []
 
     def _parse_stop(self, content: dict, name: str) -> typing.List[Stop]:
         stops = []
