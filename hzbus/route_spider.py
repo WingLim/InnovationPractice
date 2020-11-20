@@ -5,7 +5,7 @@ import threading
 import typing
 from lxml import etree
 from urllib.parse import quote
-from model import Route, Stop
+from .model import Route, Stop
 
 
 class RouteSpider:
@@ -29,7 +29,6 @@ class RouteSpider:
             self.routes.append((name, href))
         with open('routes.json', 'w') as f:
             f.write(json.dumps(self.routes))
-        
 
     def get_all_stop_name(self):
         """获取所有公交站点名称，用于获取详细信息
@@ -94,7 +93,6 @@ class RouteSpider:
 
         return routes
 
-
     def find_stop_by_name(self, name: str) -> typing.List[Stop]:
         path = 'findStopByName?city=%d&h5Platform=6&stopName=' % self.city_id
         href = self.ibuscloud + path + quote(name)
@@ -113,7 +111,7 @@ class RouteSpider:
                     a_stop.stop_id = stop["stopId"]
                     a_stop.lng = stop["lng"]
                     a_stop.lat = stop["lat"]
-                    a_stop.routes.extend(self._parse_stop_routes(i["routeInfos"]))
+                    a_stop.routes.extend(self._parse_stop_routes(stop["routeInfos"]))
                     stops.append(a_stop)
 
         return stops
