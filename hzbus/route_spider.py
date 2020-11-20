@@ -93,6 +93,16 @@ class RouteSpider:
 
         return routes
 
+    def get_all_stop_details(self):
+        for stop in self.stops:
+            # 保存下来的的公交站点名为 XXX站
+            # 根据站名查找时需要去掉'站'
+            stop_name = stop[:-1]
+            result = self.find_stop_by_name(stop_name)
+            if len(result):
+                for item in result:
+                    item.create()
+
     def find_stop_by_name(self, name: str) -> typing.List[Stop]:
         path = 'findStopByName?city=%d&h5Platform=6&stopName=' % self.city_id
         href = self.ibuscloud + path + quote(name)
@@ -116,10 +126,11 @@ class RouteSpider:
 
         return stops
 
-    def _parse_stop_routes(self, infos: list):
+    def _parse_stop_routes(self, stop_id: int,infos: list):
         routes_id = []
         for info in infos:
-            routes_id.append(info["routeId"])
+            routes_id.append(info['routeId'])
+            self._add_stop_route(stop_id, info['routeId'])
 
         return routes_id
     
