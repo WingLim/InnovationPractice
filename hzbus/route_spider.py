@@ -20,6 +20,8 @@ class RouteSpider:
         self.stops_queue = 'stops_remain.json'
         self.stops_dict_queue = 'stops_dict_remain.json'
         self.stops_dict = {}
+        self.route_ids = []
+        self.stop_ids = []
 
     def get_all_route_name(self):
         """获取所有公交线路名称，用于获取详细信息
@@ -142,27 +144,29 @@ class RouteSpider:
 
     def _parse_route(self, content: dict, name: str) -> typing.List[Route]:
         routes = []
-        ids = []
 
         for item in content['items']:
-            if item['name'] == name:
-                for route in item['routes']:
-                    route_id = route['routeId']
-                    if route_id in ids:
-                        continue
-                    else:
-                        ids.append(route_id)
-                    a_route = Route()
-                    a_route.route_id = route_id
-                    if 'oppositeId' in route:
-                        a_route.opposite_id = route['oppositeId']
-                    if 'amapId' in route:
-                        a_route.amap_id = route['amapId']
-                    a_route.name = route['routeName']
-                    a_route.origin = route['origin']
-                    a_route.terminal = route['terminal']
-                    a_route.has_gps = route['hasGps']
-                    routes.append(a_route)
+            # if item['name'] == name:
+            # 这里去掉名称检测，因为爬取到的路的名称和通过 API 获取到的有一部分有出入
+            # 这样能尽量获取所有线路信息
+            for route in item['routes']:
+                route_id = route['routeId']
+                # 如果获取到的线路的 id 在 route_ids 里面，则跳过，剩下的全部插入到数据库中
+                if route_id in self.route_ids:
+                    continue
+                else:
+                    self.route_ids.append(route_id)
+                a_route = Route()
+                a_route.route_id = route_id
+                if 'oppositeId' in route:
+                    a_route.opposite_id = route['oppositeId']
+                if 'amapId' in route:
+                    a_route.amap_id = route['amapId']
+                a_route.name = route['routeName']
+                a_route.origin = route['origin']
+                a_route.terminal = route['terminal']
+                a_route.has_gps = route['hasGps']
+                routes.append(a_route)
 
         return routes
 
@@ -180,7 +184,7 @@ class RouteSpider:
         while len(queue):
             # 保存下来的的公交站点名为 XXX站
             # 根据站名查找时需要去掉'站'
-            name = queue.pop()[:-1]
+            name = queue.pop()
             print("正在爬取 %s 的详细信息" % name)
             with open(self.stops_queue, 'w') as f:
                 json.dump(queue, f)
@@ -202,15 +206,14 @@ class RouteSpider:
 
     def _parse_stop(self, content: dict, name: str) -> typing.List[Stop]:
         stops = []
-        ids = []
         for item in content['items']:
             if item['name'] == name:
                 for stop in item['stops']:
                     stop_id = stop['stopId']
-                    if stop_id in ids:
+                    if stop_id in self.stop_ids:
                         continue
                     else:
-                        ids.append(stop_id)
+                        self.stop_ids.append(stop_id)
                     a_stop = Stop()
                     a_stop.name = name
                     a_stop.stop_id = stop['stopId']
@@ -243,9 +246,9 @@ class RouteSpider:
 if __name__ == '__main__':
     spider = RouteSpider()
     #spider.get_all_route_name()
-    spider.load_data()
-    spider.get_all_stop_name()
     #spider.load_data()
-    #spider.get_all_route_details()
-    #spider.get_all_stop_details()
+    #spider.get_all_stop_name()
+    spider.load_data()
+    spider.get_all_route_details()
+    spider.get_all_stop_details()
     
