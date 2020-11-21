@@ -11,55 +11,83 @@ from model import Route, Stop
 
 class RouteSpider:
     def __init__(self):
-        self.url = 'https://bus.mapbar.com/hangzhou/xianlu/'
+        self.url = 'https://hangzhou.8684.cn'
         self.ibuscloud = 'https://app.ibuscloud.com/v1/bus/'
         self.city_id = 330100
         self.routes = []
         self.stops = []
         self.routes_queue = 'routes-remain.json'
         self.stops_queue = 'stops_remain.json'
+        self.stops_dict_queue = 'stops_dict_remain.json'
+        self.stops_dict = {}
 
     def get_all_route_name(self):
         """获取所有公交线路名称，用于获取详细信息
         """
-
-        r = requests.get(self.url)
-        tree = etree.HTML(r.text)
-        routes = tree.xpath('//dl[contains(@class, "ChinaTxt")]/dd/a')
-        for route in routes:
-            name = route.xpath('./text()')[0]
-            href = route.xpath('@href')[0]
-            self.routes.append((name, href))
+        for i in range(1, 7):
+            url = self.url + '/line' + str(i)
+            print(url)
+            r = requests.get(url)
+            tree = etree.HTML(r.text)
+            routes = tree.xpath('//div[@class="list clearfix"]/a')
+            for route in routes:
+                name = route.xpath('./text()')[0]
+                href = self.url + route.xpath('@href')[0]
+                self.routes.append((name, href))
         with open('routes.json', 'w') as f:
-            f.write(json.dumps(self.routes))
+            f.write(json.dumps(self.routes, ensure_ascii=False))
 
     def get_all_stop_name(self):
         """获取所有公交站点名称，用于获取详细信息
         """
 
-        for item in self.routes:
-            print("正在爬取 %s 公交经过的站点" % item[0])
-            r = requests.get(item[1])
+        filename = self.stops_dict_queue
+        if not os.path.exists(filename):
+            queue = self.routes
+        else:
+            with open(filename, 'r') as f:
+                queue = json.load(f)
+        self._start_tasks(queue, self.get_stop_name)
+        self._remove_queue_file(filename)
+
+    def get_stop_name(self, queue: list):
+        while len(queue):
+            item = queue.pop(0)
+            route_name = item[0]
+            href = item[1]
+            self.stops_dict[route_name] = [[], []]
+            print("正在爬取 %s 公交经过的站点" % route_name)
+            time.sleep(1)
+            r = requests.get(href)
             tree = etree.HTML(r.text)
-            stops = tree.xpath('//ul[@id="scrollTr"]/li/a')
-            for stop in stops:
-                name = stop.xpath('./em/text()')[0]
-                self.stops.append(name)
-                
-        print('before: ', len(self.stops))
-        self.stops = list(set(self.stops))
-        print('after: ', len(self.stops))
-        with open('stops.json', 'w') as f:
-            f.write(json.dumps(self.stops))
+            lines = tree.xpath('//div[@class="bus-lzlist mb15"]')
+            for i in range(len(lines)):
+                stops = lines[i].xpath('./ol/li/a')
+                for stop in stops:
+                    name = stop.xpath('./text()')[0]
+                    self.stops_dict[route_name][i].append(name)
+                    self.stops.append(name)
+
+            with open(self.stops_dict_queue, 'w') as f:
+                f.write(json.dumps(queue, ensure_ascii=False))
+            
+            with open('stops.json', 'w') as f:
+                f.write(json.dumps(self.stops, ensure_ascii=False))
+        
+            with open('stops_dict.json', 'w') as f:
+                f.write(json.dumps(self.stops_dict, ensure_ascii=False))
     
     def load_data(self):
-        with open('routes.json', 'r') as f:
-            self.routes = json.load(f)
-            print(len(self.routes))
+        if os.path.exists('routes.json'):
+            with open('routes.json', 'r') as f:
+                self.routes = json.load(f)
+                print(len(self.routes))
 
-        with open('stops.json', 'r') as f:
-            self.stops = json.load(f)
-            print(len(self.stops))
+        if os.path.exists('stops.json'):
+            with open('stops.json', 'r') as f:
+                data = json.load(f)
+                self.stops = list(set(data))
+                print(len(self.stops))
 
     def _start_tasks(self, queue: list, func, num: int = 5):
         tasks = []
@@ -72,10 +100,11 @@ class RouteSpider:
             task.join()
 
     def _remove_queue_file(self, filename):
-        with open(filename, 'r') as f:
-            queue = json.load(f)
-        if not len(queue):
-            os.remove(filename)
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                queue = json.load(f)
+            if not len(queue):
+                os.remove(filename)
 
     def get_all_route_details(self):
         filename = self.routes_queue
@@ -214,8 +243,9 @@ class RouteSpider:
 if __name__ == '__main__':
     spider = RouteSpider()
     #spider.get_all_route_name()
-    #spider.get_all_stop_name()
     spider.load_data()
+    spider.get_all_stop_name()
+    #spider.load_data()
     #spider.get_all_route_details()
-    spider.get_all_stop_details()
+    #spider.get_all_stop_details()
     
