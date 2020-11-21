@@ -85,11 +85,11 @@ class RouteSpider:
     
     def get_route_details(self, queue: list):
         while len(queue):
-            time.sleep(1)
             name = queue.pop(0)
             print("正在爬取 %s 的详细信息" % name)
             with open('routes_remain.json', 'w') as f:
                 json.dump(queue, f)
+            time.sleep(1)
             result = self.find_route_by_name(name)
             if len(result):
                 for item in result:
@@ -186,5 +186,8 @@ if __name__ == '__main__':
     spider = RouteSpider()
     #spider.get_all_route_name()
     #spider.get_all_stop_name()
-    spider.load_data()
-    spider.get_all_route_details()
+    #spider.load_data()
+    #spider.get_all_route_details()
+    result = spider.find_stop_by_name("462路区间")
+    for i in result:
+        print(i.__dict__)
