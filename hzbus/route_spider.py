@@ -113,12 +113,18 @@ class RouteSpider:
 
     def _parse_route(self, content: dict, name: str) -> typing.List[Route]:
         routes = []
+        ids = []
 
         for item in content['items']:
             if item['name'] == name:
                 for route in item['routes']:
+                    route_id = route['routeId']
+                    if route_id in ids:
+                        continue
+                    else:
+                        ids.append(route_id)
                     a_route = Route()
-                    a_route.route_id = route['routeId']
+                    a_route.route_id = route_id
                     if 'oppositeId' in route:
                         a_route.opposite_id = route['oppositeId']
                     if 'amapId' in route:
@@ -167,10 +173,15 @@ class RouteSpider:
 
     def _parse_stop(self, content: dict, name: str) -> typing.List[Stop]:
         stops = []
-
+        ids = []
         for item in content['items']:
             if item['name'] == name:
                 for stop in item['stops']:
+                    stop_id = stop['stopId']
+                    if stop_id in ids:
+                        continue
+                    else:
+                        ids.append(stop_id)
                     a_stop = Stop()
                     a_stop.name = name
                     a_stop.stop_id = stop['stopId']
@@ -178,7 +189,7 @@ class RouteSpider:
                         a_stop.amap_id = stop['amapId']
                     a_stop.lng = stop['lng']
                     a_stop.lat = stop['lat']
-                    a_stop.routes = ','.join(self._parse_stop_routes(stop['stopId'], stop['routeInfos']))
+                    a_stop.routes = ','.join(self._parse_stop_routes(stop_id, stop['routeInfos']))
                     stops.append(a_stop)
 
         return stops

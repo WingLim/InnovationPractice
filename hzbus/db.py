@@ -8,8 +8,7 @@ class BasicModel(Model):
 
 class RouteDb(BasicModel):
 
-    id = PrimaryKeyField()
-    route_id = IntegerField()
+    route_id = IntegerField(primary_key=True, unique=True)
     opposite_id = IntegerField(null=True)
     amap_id = IntegerField(null=True)
     name = CharField()
@@ -20,8 +19,7 @@ class RouteDb(BasicModel):
 
 class StopDb(BasicModel):
 
-    id = PrimaryKeyField()
-    stop_id = IntegerField()
+    stop_id = IntegerField(primary_key=True, unique=True)
     amap_id = IntegerField(null=True)
     name = CharField()
     lng = DoubleField()
