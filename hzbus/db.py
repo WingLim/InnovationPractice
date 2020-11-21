@@ -1,4 +1,4 @@
-from peewee import SqliteDatabase, Model, CharField, TextField, IntegerField, DoubleField, BooleanField
+from peewee import *
 
 db = SqliteDatabase('hzbus.db')
 
@@ -8,7 +8,8 @@ class BasicModel(Model):
 
 class RouteDb(BasicModel):
 
-    route_id = IntegerField(primary_key=True, unique=True)
+    id = PrimaryKeyField()
+    route_id = IntegerField()
     opposite_id = IntegerField(null=True)
     amap_id = IntegerField(null=True)
     name = CharField()
@@ -19,7 +20,8 @@ class RouteDb(BasicModel):
 
 class StopDb(BasicModel):
 
-    stop_id = IntegerField(primary_key=True, unique=True)
+    id = PrimaryKeyField()
+    stop_id = IntegerField()
     amap_id = IntegerField(null=True)
     name = CharField()
     lng = DoubleField()
