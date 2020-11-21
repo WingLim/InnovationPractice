@@ -16,6 +16,8 @@ class RouteSpider:
         self.city_id = 330100
         self.routes = []
         self.stops = []
+        self.routes_queue = 'routes-remain.json'
+        self.stops_queue = 'stops_remain.json'
 
     def get_all_route_name(self):
         """获取所有公交线路名称，用于获取详细信息
@@ -69,8 +71,14 @@ class RouteSpider:
         for task in tasks:
             task.join()
 
+    def _remove_queue_file(self, filename):
+        with open(filename, 'r') as f:
+            queue = json.load(f)
+        if not len(queue):
+            os.remove(filename)
+
     def get_all_route_details(self):
-        filename = 'routes_remain.json'
+        filename = self.routes_queue
         if not os.path.exists(filename):
             queue = [i[0] for i in self.routes]
         else:
@@ -78,16 +86,13 @@ class RouteSpider:
                 queue = json.load(f)
         self._start_tasks(queue, self.get_route_details)
         #self.get_route_details(queue)
-        with open(filename, 'r') as f:
-            queue = json.load(f)
-        if not len(queue):
-            os.remove(filename)
+        self._remove_queue_file(filename)
     
     def get_route_details(self, queue: list):
         while len(queue):
             name = queue.pop(0)
             print("正在爬取 %s 的详细信息" % name)
-            with open('routes_remain.json', 'w') as f:
+            with open(self.routes_queue, 'w') as f:
                 json.dump(queue, f)
             time.sleep(1)
             result = self.find_route_by_name(name)
@@ -127,8 +132,14 @@ class RouteSpider:
         return routes
 
     def get_all_stop_details(self):
-        queue = self.stops
+        filename = self.stops_queue
+        if not os.path.exists(filename):
+            queue = self.stops
+        else:
+            with open(filename, 'r') as f:
+                queue = json.load(f)
         self._start_tasks(queue, get_stop_details)
+        self._remove_queue_file(filename)
 
     def get_stop_details(self, queue: list):
         while len(queue):
@@ -136,6 +147,9 @@ class RouteSpider:
             # 根据站名查找时需要去掉'站'
             name = queue.pop()[:-1]
             print("正在爬取 %s 的详细信息" % name)
+            with open(self.stops_queue, 'w') as f:
+                json.dump(queue, f)
+            time.sleep(1)
             result = self.find_stop_by_name(name)
             if len(result):
                 for item in result:
@@ -186,8 +200,7 @@ if __name__ == '__main__':
     spider = RouteSpider()
     #spider.get_all_route_name()
     #spider.get_all_stop_name()
-    #spider.load_data()
+    spider.load_data()
     #spider.get_all_route_details()
-    result = spider.find_stop_by_name("462路区间")
-    for i in result:
-        print(i.__dict__)
+    spider.get_all_stop_details()
+    
