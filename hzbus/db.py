@@ -9,8 +9,8 @@ class BasicModel(Model):
 class RouteDb(BasicModel):
 
     route_id = IntegerField(primary_key=True, unique=True)
-    opposite_id = IntegerField()
-    amap_id = IntegerField()
+    opposite_id = IntegerField(null=True)
+    amap_id = IntegerField(null=True)
     name = CharField()
     origin = CharField()
     terminal = CharField()

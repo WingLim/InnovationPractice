@@ -111,7 +111,10 @@ class RouteSpider:
                 for route in item['routes']:
                     a_route = Route()
                     a_route.route_id = route['routeId']
-                    a_route.opposite_id = route['oppositeId']
+                    if 'oppositeId' in route:
+                        a_route.opposite_id = route['oppositeId']
+                    if 'amapId' in route:
+                        a_route.amap_id = route['amapId']
                     a_route.name = route['routeName']
                     a_route.origin = route['origin']
                     a_route.terminal = route['terminal']
