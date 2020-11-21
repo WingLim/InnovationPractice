@@ -176,10 +176,10 @@ class RouteSpider:
         return routes_id
     
     def _add_stop_route(self, stop_id: int, route_id: int):
-        # Todo
         # 获取到通过当前站点的公交路线 ID 后，在数据库中查询该公交线路
         # 并将站点 ID 更新到 stops 中
-        pass
+        if Route.find_by_id(route_id):
+            Route.add_a_stop(route_id, stop_id)
     
 
 if __name__ == '__main__':

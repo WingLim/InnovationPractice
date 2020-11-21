@@ -16,6 +16,15 @@ class Route:
         data = self.__dict__
         RouteDb.create(**data)
 
+    @classmethod
+    def find_by_id(cls, route_id: int):
+        return RouteDb.get_or_none(RouteDb.route_id == route_id)
+
+    @classmethod
+    def add_a_stop(cls, route_id: int, stop_id: int):
+        query = RouteDb.update(stops=RouteDb.stops + ',' + stop_id).where(RouteDb.route_id == route_id)
+        query.execute()
+
 class Stop:
     def __init__(self):
         self.stop_id = None
