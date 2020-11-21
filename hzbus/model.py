@@ -10,7 +10,7 @@ class Route:
         self.origin = ""
         self.terminal = ""
         self.has_gps = False
-        self.stops = []
+        self.stops = ""
 
     def create(self):
         data = self.__dict__
@@ -32,8 +32,12 @@ class Stop:
         self.name = ""
         self.lng = None # 经度
         self.lat = None # 纬度
-        self.routes = []
+        self.routes = ""
 
     def create(self):
         data = self.__dict__
         StopDb.create(**data)
+
+if __name__ == '__main__':
+    route = Route.find_by_id(1001000001)
+    print(route.name)

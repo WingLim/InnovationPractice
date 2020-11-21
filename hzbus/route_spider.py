@@ -178,7 +178,7 @@ class RouteSpider:
                         a_stop.amap_id = stop['amapId']
                     a_stop.lng = stop['lng']
                     a_stop.lat = stop['lat']
-                    a_stop.routes.extend(self._parse_stop_routes(stop['stopId'], stop['routeInfos']))
+                    a_stop.routes = ','.join(self._parse_stop_routes(stop['stopId'], stop['routeInfos']))
                     stops.append(a_stop)
 
         return stops
@@ -186,7 +186,7 @@ class RouteSpider:
     def _parse_stop_routes(self, stop_id: int,infos: list):
         routes_id = []
         for info in infos:
-            routes_id.append(info['routeId'])
+            routes_id.append(str(info['routeId']))
             self._add_stop_route(stop_id, info['routeId'])
 
         return routes_id
