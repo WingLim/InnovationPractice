@@ -78,7 +78,7 @@ class RouteSpider:
                 queue = json.load(f)
         self._start_tasks(queue, self.get_route_details)
         #self.get_route_details(queue)
-        
+        os.remove(filename)
     
     def get_route_details(self, queue: list):
         while len(queue):
