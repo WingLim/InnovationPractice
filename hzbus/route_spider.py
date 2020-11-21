@@ -138,7 +138,7 @@ class RouteSpider:
         else:
             with open(filename, 'r') as f:
                 queue = json.load(f)
-        self._start_tasks(queue, get_stop_details)
+        self._start_tasks(queue, self.get_stop_details)
         self._remove_queue_file(filename)
 
     def get_stop_details(self, queue: list):
@@ -170,13 +170,15 @@ class RouteSpider:
 
         for item in content['items']:
             if item['name'] == name:
-                for stop in item["stops"]:
+                for stop in item['stops']:
                     a_stop = Stop()
                     a_stop.name = name
-                    a_stop.stop_id = stop["stopId"]
-                    a_stop.lng = stop["lng"]
-                    a_stop.lat = stop["lat"]
-                    a_stop.routes.extend(self._parse_stop_routes(stop["routeInfos"]))
+                    a_stop.stop_id = stop['stopId']
+                    if 'amapId' in stop:
+                        a_stop.amap_id = stop['amapId']
+                    a_stop.lng = stop['lng']
+                    a_stop.lat = stop['lat']
+                    a_stop.routes.extend(self._parse_stop_routes(stop['stopId'], stop['routeInfos']))
                     stops.append(a_stop)
 
         return stops
@@ -192,7 +194,9 @@ class RouteSpider:
     def _add_stop_route(self, stop_id: int, route_id: int):
         # 获取到通过当前站点的公交路线 ID 后，在数据库中查询该公交线路
         # 并将站点 ID 更新到 stops 中
-        if Route.find_by_id(route_id):
+        route = Route.find_by_id(route_id)
+        if route:
+            print('正在更新 %s 的站点信息' % route.name)
             Route.add_a_stop(route_id, stop_id)
     
 
