@@ -20,7 +20,7 @@ class RouteDb(BasicModel):
 class StopDb(BasicModel):
 
     stop_id = IntegerField(primary_key=True, unique=True)
-    amap_id = IntegerField()
+    amap_id = IntegerField(null=True)
     name = CharField()
     lng = DoubleField()
     lat = DoubleField()
