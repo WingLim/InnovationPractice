@@ -3,9 +3,10 @@ import json
 import requests
 import threading
 import typing
+import time
 from lxml import etree
 from urllib.parse import quote
-from .model import Route, Stop
+from model import Route, Stop
 
 
 class RouteSpider:
@@ -58,9 +59,35 @@ class RouteSpider:
             self.stops = json.load(f)
             print(len(self.stops))
 
+    def _start_tasks(self, queue: list, func, num: int = 5):
+        tasks = []
+        for i in range(5):
+            task = threading.Thread(target=func, args=(queue,))
+            tasks.append(task)
+            task.start()
+        
+        for task in tasks:
+            task.join()
+
     def get_all_route_details(self):
-        for route in self.routes:
-            result = self.find_route_by_name(route)
+        filename = 'routes_remain.json'
+        if not os.path.exists(filename):
+            queue = [i[0] for i in self.routes]
+        else:
+            with open(filename, 'r') as f:
+                queue = json.load(f)
+        self._start_tasks(queue, self.get_route_details)
+        #self.get_route_details(queue)
+        
+    
+    def get_route_details(self, queue: list):
+        while len(queue):
+            time.sleep(1)
+            name = queue.pop(0)
+            print("正在爬取 %s 的详细信息" % name)
+            with open('routes_remain.json', 'w') as f:
+                json.dump(queue, f)
+            result = self.find_route_by_name(name)
             if len(result):
                 for item in result:
                     item.create()
@@ -94,11 +121,16 @@ class RouteSpider:
         return routes
 
     def get_all_stop_details(self):
-        for stop in self.stops:
+        queue = self.stops
+        self._start_tasks(queue, get_stop_details)
+
+    def get_stop_details(self, queue: list):
+        while len(queue):
             # 保存下来的的公交站点名为 XXX站
             # 根据站名查找时需要去掉'站'
-            stop_name = stop[:-1]
-            result = self.find_stop_by_name(stop_name)
+            name = queue.pop()[:-1]
+            print("正在爬取 %s 的详细信息" % name)
+            result = self.find_stop_by_name(name)
             if len(result):
                 for item in result:
                     item.create()
@@ -146,5 +178,7 @@ class RouteSpider:
 
 if __name__ == '__main__':
     spider = RouteSpider()
-    spider.get_all_route_name()
-    spider.get_all_stop_name()
+    #spider.get_all_route_name()
+    #spider.get_all_stop_name()
+    spider.load_data()
+    spider.get_all_route_details()
