@@ -113,22 +113,28 @@ class RouteSpider:
 
     def get_all_route_details(self):
         filename = self.routes_queue
+        # 检查队列缓存文件，有则加载，没有则从 self.routes 获取线路名
         if not os.path.exists(filename):
             queue = [i[0] for i in self.routes]
         else:
             with open(filename, 'r') as f:
                 queue = json.load(f)
+        # 启动多线程爬取
         self._start_tasks(queue, self.get_route_details)
         #self.get_route_details(queue)
+        # 爬取完毕，删除队列缓存文件
         self._remove_queue_file(filename)
     
     def get_route_details(self, queue: list):
         while len(queue):
+            # 从队列头部取出
             name = queue.pop(0)
             print("正在爬取 %s 的详细信息" % name)
+            # 将剩余队列保存到缓存文件
             with open(self.routes_queue, 'w') as f:
                 json.dump(queue, f)
             time.sleep(1)
+            # 根据名字查找线路信息，并插入到数据库
             result = self.find_route_by_name(name)
             if len(result):
                 for item in result:
@@ -140,6 +146,7 @@ class RouteSpider:
         r = requests.get(href)
         result = json.loads(r.text)
 
+        # 结果不为 0，进行解析，为 0 返回空列表
         if result['total'] != 0:
             return self._parse_route(result, name)
         else:
