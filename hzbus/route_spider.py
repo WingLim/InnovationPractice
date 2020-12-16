@@ -60,13 +60,15 @@ class RouteSpider:
             item = queue.pop(0)
             route_name = item[0]
             href = item[1]
-            self.stops_dict[route_name] = [[], []]
+            self.stops_dict[route_name] = []
             print("正在爬取 %s 公交经过的站点" % route_name)
             time.sleep(1)
             r = requests.get(href)
             tree = etree.HTML(r.text)
             lines = tree.xpath('//div[@class="bus-lzlist mb15"]')
+            # 一条线路可能包含正向和反向，根据线路数量添加子列表
             for i in range(len(lines)):
+                self.stops_dict[route_name].append([])
                 stops = lines[i].xpath('./ol/li/a')
                 for stop in stops:
                     name = stop.xpath('./text()')[0]
