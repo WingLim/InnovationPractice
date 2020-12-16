@@ -16,9 +16,11 @@ class RouteSpider:
         self.city_id = 330100
         self.routes = []
         self.stops = []
-        self.routes_queue = 'routes-remain.json'
-        self.stops_queue = 'stops_remain.json'
-        self.stops_dict_queue = 'stops_dict_remain.json'
+
+        self.routes_queue = 'routes_queue_cache.json'
+        self.stops_queue = 'stops_queue_cache.json'
+        self.stops_dict_queue = 'stops_dict_queue_cache.json'
+
         self.stops_dict = {}
         self.route_ids = []
         self.stop_ids = []
