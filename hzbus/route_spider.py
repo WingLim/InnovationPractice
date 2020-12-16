@@ -26,7 +26,10 @@ class RouteSpider:
     def get_all_route_name(self):
         """获取所有公交线路名称，用于获取详细信息
         """
-        for i in range(1, 7):
+        # 按照线路类别来爬取，总共有11种类别
+        # 分别为：常规线、假日线、萧山线、夜间线、余杭线
+        # 高峰线、地铁线、定制线、富阳线、临安线、专线
+        for i in range(1, 12):
             url = self.url + '/line' + str(i)
             print(url)
             r = requests.get(url)
