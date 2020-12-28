@@ -98,10 +98,16 @@ class RouteSpider:
                 self.stops = list(set(data))
                 print(len(self.stops))
 
+        if os.path.exists('stops_dict.json'):
+            with open('stops_dict.json', 'r') as f:
+                self.stops_dict = json.load(f)
+                print(len(self.stops_dict))
+
     def _start_tasks(self, queue: list, func, num: int = 5):
         tasks = []
-        for i in range(5):
-            task = threading.Thread(target=func, args=(queue,))
+        lock = threading.RLock()
+        for i in range(num):
+            task = threading.Thread(target=func, args=(queue, lock))
             tasks.append(task)
             task.start()
         
@@ -129,20 +135,24 @@ class RouteSpider:
         # 爬取完毕，删除队列缓存文件
         self._remove_queue_file(filename)
     
-    def get_route_details(self, queue: list):
+    def get_route_details(self, queue: list, lock: threading.RLock):
         while len(queue):
             # 从队列头部取出
+            lock.acquire()
             name = queue.pop(0)
+            lock.release()
             print("正在爬取 %s 的详细信息" % name)
-            # 将剩余队列保存到缓存文件
-            with open(self.routes_queue, 'w') as f:
-                json.dump(queue, f)
             time.sleep(1)
             # 根据名字查找线路信息，并插入到数据库
             result = self.find_route_by_name(name)
             if len(result):
                 for item in result:
                     item.create()
+            # 爬取后再将剩余队列保存到缓存文件
+            lock.acquire()
+            with open(self.routes_queue, 'w') as f:
+                json.dump(queue, f, ensure_ascii=False)
+            lock.release()
 
     def find_route_by_name(self, name: str) -> typing.List[Route]:
         path = 'findRouteByName?city=%d&h5Platform=6&routeName=' % self.city_id
@@ -158,55 +168,77 @@ class RouteSpider:
 
     def _parse_route(self, content: dict, name: str) -> typing.List[Route]:
         routes = []
-
+        # 用于记录在请求中找到的对应的线路信息的次数
+        flag = 0
         for item in content['items']:
-            # if item['name'] == name:
-            # 这里去掉名称检测，因为爬取到的路的名称和通过 API 获取到的有一部分有出入
-            # 这样能尽量获取所有线路信息
+            # 一条公交线路最多有正向和反向，当正反向同时找到时，停止遍历
+            if flag == 2:
+                break
             for route in item['routes']:
-                route_id = route['routeId']
-                # 如果获取到的线路的 id 在 route_ids 里面，则跳过，剩下的全部插入到数据库中
-                if route_id in self.route_ids:
-                    continue
-                else:
-                    self.route_ids.append(route_id)
-                a_route = Route()
-                a_route.route_id = route_id
-                if 'oppositeId' in route:
-                    a_route.opposite_id = route['oppositeId']
-                if 'amapId' in route:
-                    a_route.amap_id = route['amapId']
-                a_route.name = route['routeName']
-                a_route.origin = route['origin']
-                a_route.terminal = route['terminal']
-                a_route.has_gps = route['hasGps']
-                routes.append(a_route)
+                origin = route['origin']
+                terminal = route['terminal']
+                for tmp in self.stops_dict[name]:
+                    if origin == tmp[0] and terminal == tmp[-1]:
+                        flag += 1
+                        route_id = route['routeId']
+                        # 如果获取到的线路的 id 在 route_ids 里面，则跳过，剩下的全部插入到数据库中
+                        if route_id in self.route_ids:
+                            continue
+                        else:
+                            self.route_ids.append(route_id)
+                        a_route = Route()
+                        a_route.route_id = route_id
+                        if 'oppositeId' in route:
+                            a_route.opposite_id = route['oppositeId']
+                        if 'amapId' in route:
+                            a_route.amap_id = route['amapId']
+                        a_route.name = route['routeName']
+                        a_route.raw_name = name
+                        a_route.origin = route['origin']
+                        a_route.terminal = route['terminal']
+                        a_route.has_gps = route['hasGps']
+                        routes.append(a_route)
 
         return routes
 
     def get_all_stop_details(self):
-        filename = self.stops_queue
+        filename = self.stops_dict_queue
         if not os.path.exists(filename):
-            queue = self.stops
+            queue = self.stops_dict
         else:
             with open(filename, 'r') as f:
                 queue = json.load(f)
         self._start_tasks(queue, self.get_stop_details)
         self._remove_queue_file(filename)
 
-    def get_stop_details(self, queue: list):
+    def get_stop_details(self, queue: dict, lock: threading.RLock):
         while len(queue):
             # 保存下来的的公交站点名为 XXX站
             # 根据站名查找时需要去掉'站'
-            name = queue.pop()
-            print("正在爬取 %s 的详细信息" % name)
-            with open(self.stops_queue, 'w') as f:
-                json.dump(queue, f)
+            # routes 为 ('route_name', [[route_stops], [route_stops]])
+            lock.acquire()
+            routes = queue.popitem()
+            lock.release()
             time.sleep(1)
-            result = self.find_stop_by_name(name)
-            if len(result):
-                for item in result:
-                    item.create()
+
+            for route in routes[1]:
+                route_id = Route.get_id_by_raw_name(routes[0], route[0], route[-1])
+                for stop_name in route:
+                    stop_id = Stop.get_id_by_name(stop_name)
+                    if not stop_id:
+                        print("正在爬取 %s 的详细信息" % stop_name)
+                        result = self.find_stop_by_name(stop_name)
+                        if len(result):
+                            for item in result:
+                                item.create()
+                    else:
+                        self._add_stop_route(stop_id, route_id)
+            # 爬取后再将剩余队列保存到缓存文件
+            lock.acquire()
+            with open(self.stops_queue, 'w') as f:
+                json.dump(queue, f, ensure_ascii=False)
+            lock.release()
+
 
     def find_stop_by_name(self, name: str) -> typing.List[Stop]:
         path = 'findStopByName?city=%d&h5Platform=6&stopName=' % self.city_id
@@ -265,4 +297,3 @@ if __name__ == '__main__':
     spider.load_data()
     spider.get_all_route_details()
     spider.get_all_stop_details()
-    
