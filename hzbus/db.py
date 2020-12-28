@@ -12,6 +12,7 @@ class RouteDb(BasicModel):
     opposite_id = IntegerField(null=True)
     amap_id = IntegerField(null=True)
     name = CharField()
+    raw_name = CharField()
     origin = CharField()
     terminal = CharField()
     has_gps = BooleanField()
