@@ -106,6 +106,17 @@ class Stop:
             result.append(stop)
         return result
 
+class Bus:
+    def __init__(self):
+        """
+        lng: 纬度
+        lat: 经度
+        plate: 车牌号
+        """
+        self.id = ''
+        self.lng = 0
+        self.lat = 0
+        self.plate = ''
 
 if __name__ == '__main__':
     #result = Route.get_all_with_stop_name()
