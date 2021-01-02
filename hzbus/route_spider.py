@@ -57,14 +57,15 @@ class RouteSpider:
         self._start_tasks(queue, self.get_stop_name)
         self._remove_queue_file(filename)
 
-    def get_stop_name(self, queue: list):
+    def get_stop_name(self, queue: list, lock: threading.RLock):
         while len(queue):
+            lock.acquire()
             item = queue.pop(0)
+            lock.release()
             route_name = item[0]
             href = item[1]
             self.stops_dict[route_name] = []
             print("正在爬取 %s 公交经过的站点" % route_name)
-            time.sleep(1)
             r = requests.get(href)
             tree = etree.HTML(r.text)
             lines = tree.xpath('//div[@class="bus-lzlist mb15"]')
@@ -130,7 +131,7 @@ class RouteSpider:
             with open(filename, 'r') as f:
                 queue = json.load(f)
         # 启动多线程爬取
-        self._start_tasks(queue, self.get_route_details)
+        self._start_tasks(queue, self.get_route_details, 10)
         #self.get_route_details(queue)
         # 爬取完毕，删除队列缓存文件
         self._remove_queue_file(filename)
@@ -139,10 +140,13 @@ class RouteSpider:
         while len(queue):
             # 从队列头部取出
             lock.acquire()
-            name = queue.pop(0)
+            if len(queue):
+                name = queue.pop(0)
+            else:
+                lock.release()
+                break
             lock.release()
             print("正在爬取 %s 的详细信息" % name)
-            time.sleep(1)
             # 根据名字查找线路信息，并插入到数据库
             result = self.find_route_by_name(name)
             if len(result):
@@ -217,9 +221,12 @@ class RouteSpider:
             # 根据站名查找时需要去掉'站'
             # routes 为 ('route_name', [[route_stops], [route_stops]])
             lock.acquire()
-            routes = queue.popitem()
+            if len(queue):
+                routes = queue.popitem()
+            else:
+                lock.release()
+                break
             lock.release()
-            time.sleep(1)
 
             for route in routes[1]:
                 route_id = Route.get_id_by_raw_name(routes[0], route[0], route[-1])
