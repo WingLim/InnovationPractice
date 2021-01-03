@@ -1,10 +1,16 @@
+from os import path
 from peewee import *
 
-db = SqliteDatabase('hzbus.db')
+base_path = path.dirname(__file__)
+
+db = SqliteDatabase(
+    path.join(base_path, '../hzbus.db'))
+
 
 class BasicModel(Model):
     class Meta:
         database = db
+
 
 class RouteDb(BasicModel):
 
@@ -17,6 +23,7 @@ class RouteDb(BasicModel):
     terminal = CharField()
     has_gps = BooleanField()
     stops = TextField(null=True)
+
 
 class StopDb(BasicModel):
 
