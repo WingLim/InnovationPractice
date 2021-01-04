@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>杭州公交｜路线图</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/dashboard.css" rel="stylesheet">
+    <script src="/static/js-image-zoom.js" type="application/javascript"></script>
+</head>
+
+<body>
+
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">杭州公交</a>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"
+                style="overflow-y:scroll;">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <p class="nav-link active" aria-current="page">
+                                <span data-feather="compass"></span>
+                                线路选择
+                            </p>
+                        </li>
+                        {% for route_name, route_id in routes %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/?route_id={{ route_id }}">
+                                <span data-feather="navigation"></span>
+                                {{ route_name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div
+                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">当前路线：{{ _route_name }}</h1>
+                </div>
+
+                <div id="img-container">
+                    <img id="img-map" src="/staticmap/{{ _route_id }}" class="img-fluid" height="700px">
+                </div>
+                <!-- </canvas> -->
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/feather.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script>
+        feather.replace()
+
+        // var options = {
+        //     height: 700,
+        //     // zoomWidth: 900,
+        //     zoomPosition: 'original',
+        //     // offset: { vertical: 0, horizontal: 10 }
+        // };
+        // new ImageZoom(document.getElementById("img-container"), options);
+
+        setInterval(function () {
+            t = new Date().getTime();
+            src = "/staticmap/{{ _route_id }}" + "?" + t;
+            // console.log(t);
+            document.getElementById("img-map").src = src;
+        }, 60000);
+    </script>
+</body>
+
+</html>
