@@ -7,6 +7,7 @@ from urllib.parse import quote
 from hashlib import sha256
 from model import Bus
 
+
 class BusSpider:
     def __init__(self):
         self.url = 'https://app.ibuscloud.com/v2/bus/'
@@ -40,7 +41,8 @@ class BusSpider:
     def gen_signature(self, raw_str) -> str:
         key = '23c2f22fadf46f3b28b6adddd242959e&'.encode('utf-8')
         message = raw_str.encode('utf-8')
-        sign = base64.b64encode(hmac.new(key, message, digestmod=sha256).digest())
+        sign = base64.b64encode(
+            hmac.new(key, message, digestmod=sha256).digest())
         sign = str(sign, 'utf-8')
         return quote(sign).replace('/', '%2F')
 
@@ -62,7 +64,7 @@ class BusSpider:
             a_bus.id = bus['busId']
             a_bus.lng = bus['lng']
             a_bus.lat = bus['lat']
-            a_bus.plate = bus['busPlate']
+            a_bus.plate = bus.get('busPlate', '')
             buses.append(a_bus)
         return buses
 
