@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+
+  hzbus:
+    image: hzbus
+    ports:
+      - 8001:8001/tcp
+    restart: always
+    container_name: hzbus
